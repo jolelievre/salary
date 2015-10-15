@@ -1,0 +1,283 @@
+<html>
+  <head>
+      <title>Calcul salaire impôts</title>
+      <meta charset="utf-8">
+      <link type="text/css" rel="stylesheet" href="/css/reset.css" />
+      <link type="text/css" rel="stylesheet" href="/css/default.css" />
+      <script type="text/javascript" src="js/jquery.min.js"></script>
+      <script type="text/javascript">
+        $(document).ready(function() {
+          $('form').submit(function() {
+            var grossYear = getWithoutDigits($('input[name="grossYear"]').val());
+            var netMonth = getWithoutDigits($('input[name="netMonth"]').val());
+            var yearTax = getWithoutDigits($('input[name="yearTax"]').val());
+            var monthTax = getWithoutDigits($('input[name="monthTax"]').val());
+            var total = netMonth - monthTax;
+            console.log('grossYear '+grossYear+' netMonth '+netMonth+' yearTax '+yearTax+' monthTax '+monthTax+' total '+total);
+
+            var newRow = $('<tr></tr>');
+            newRow.append($('<td></td>').html('<b>'+grossYear+'</b>'));
+            newRow.append($('<td></td>').html(' - '+yearTax));
+            newRow.append($('<td></td>').html(netMonth));
+            newRow.append($('<td></td>').html(' - '+monthTax));
+            newRow.append($('<td align="right" width="25%"></td>').html(' = <b>'+total+' €</b>'));
+            $('#simulations').append(newRow);
+            $('#simulations').show();
+            return false;
+          });
+
+          $('input[type="text"]').on('focus', function() {
+            removeNonDigits(this);
+          });
+          $('input[type="text"]').on('keyup', function() {
+            removeNonDigits(this);
+            var fieldName = $(this).attr('name');
+            var fieldValue = $(this).val();
+            //console.log('Input changed '+fieldName+': '+fieldValue);
+            updateSalary(fieldValue,fieldName);
+          });
+          $('input[name="hoursPerWeek"]').on('keyup', updateSalaries);
+          $('input[name="monthsPerYear"]').on('keyup', updateSalaries);
+          function updateSalaries() {
+            var fieldValue = getWithoutDigits($('input[name="grossYear"]').val());
+            console.log('updateSalaries '+fieldValue )
+            updateSalary(fieldValue, 'grossYear');
+          }
+        });
+
+        function removeNonDigits(field) {
+          var newVal = getWithoutDigits($(field).val());
+          $(field).val(newVal);
+        }
+
+        function getWithoutDigits(value) {
+          return value.replace(/([^\d\.]*)/gi, '');
+        }
+
+        var grossRate = 0.23;
+        var netRate = 1 - grossRate;
+
+        function updateSalary(value, field) {
+          var grossYear = getGrossYear(value, field);
+          //Update the fields
+          var fields = ['grossHour', 'netHour', 'grossDay', 'netDay', 'grossMonth', 'netMonth', 'grossYear', 'netYear'];
+          for (var i = 0; i < fields.length; i++) {
+            var f = fields[i];
+            //No update on the changed field
+            if (f == field) {
+              $('input[name="'+field+'"]').removeClass('update');
+              $('input[name="'+field+'"]').addClass('base');
+              continue;
+            }
+            updateField(grossYear, f);
+          }
+          updateTax(grossYear);
+        }
+
+        function getGrossYear(value, field) {
+          var grossYear = value;
+          var hoursPerWeek = $('input[name="hoursPerWeek"]').val();
+          var monthsPerYear = $('input[name="monthsPerYear"]').val();
+          var weeksPerMonth = 52 / 12;
+          var daysPerWeek = 5;
+          switch (field) {
+            case 'grossHour':
+              grossYear = value * hoursPerWeek * weeksPerMonth * monthsPerYear;
+            break;
+            case 'netHour':
+              grossYear = (value * hoursPerWeek * weeksPerMonth * monthsPerYear) / netRate;
+            break;
+            case 'grossDay':
+              grossYear = value * daysPerWeek * weeksPerMonth * monthsPerYear;
+            break;
+            case 'netDay':
+              grossYear = (value * daysPerWeek * weeksPerMonth * monthsPerYear) / netRate;
+            break;
+            case 'grossMonth':
+              grossYear = value * monthsPerYear;
+            break;
+            case 'netMonth':
+              grossYear = (value * monthsPerYear) / netRate;
+            break;
+            case 'grossyear':
+              grossYear = value;
+            break;
+            case 'netYear':
+              grossYear = value / netRate;
+            break;
+          }
+          return grossYear;
+        }
+
+        function updateField(grossYear, field) {
+          var fieldValue = grossYear;
+          var hoursPerWeek = $('input[name="hoursPerWeek"]').val();
+          var monthsPerYear = $('input[name="monthsPerYear"]').val();
+          var weeksPerMonth = 52 / 12;
+          var daysPerWeek = 5;
+          switch (field) {
+            case 'grossHour':
+              fieldValue = grossYear / (hoursPerWeek * weeksPerMonth * monthsPerYear);
+            break;
+            case 'netHour':
+              fieldValue = (grossYear / (hoursPerWeek * weeksPerMonth * monthsPerYear)) * netRate;
+            break;
+            case 'grossDay':
+              fieldValue = grossYear / (daysPerWeek * weeksPerMonth * monthsPerYear);
+            break;
+            case 'netDay':
+              fieldValue = (grossYear / (daysPerWeek * weeksPerMonth * monthsPerYear)) * netRate;
+            break;
+            case 'grossMonth':
+              fieldValue = grossYear / monthsPerYear;
+            break;
+            case 'netMonth':
+              fieldValue = (grossYear / monthsPerYear) * netRate;
+            break;
+            case 'grossYear':
+              fieldValue = grossYear;
+            break;
+            case 'netYear':
+              fieldValue = grossYear * netRate;
+            break;
+          }
+          //console.log('field '+field+' fieldValue '+fieldValue)
+          var roundValue = Math.round(fieldValue);
+          switch (field) {
+            case 'grossHour':
+            case 'netHour':
+              roundValue = Math.round(fieldValue * 100) / 100;
+            break;
+          }
+          $('input[name="'+field+'"]').val(roundValue+' €');
+          $('input[name="'+field+'"]').removeClass('base');
+          $('input[name="'+field+'"]').addClass('update');
+        }
+
+        function updateTax(grossYear) {
+          var shareTax = $('input[name="shareTax"]').val();
+          var socialRate = 0.20;
+          var groups = [9690, 26764, 71754, 151956];
+          var taxes = [0, 0.14, 0.3, 0.41, 0.45];
+          var totalTax = 0;
+          var groupMin = 0;
+          var taxedYear = (grossYear - socialRate * grossYear) / shareTax;
+          for (var i = 0; i < groups.length; i++) {
+            if (taxedYear < groupMin)
+              break;
+            var groupMax = Math.min(groups[i], taxedYear);
+            var groupTax = taxes[i];
+            var groupValue = (groupMax - groupMin) * groupTax;
+            totalTax += groupValue;
+            //console.log('Tranche '+groupMin+' - '+groups[i]+' : '+groupValue);
+            groupMin = groups[i];
+          }
+          console.log('grossYear '+grossYear+' taxedYear '+taxedYear)
+          console.log('totalTax '+totalTax);
+          totalTax = Math.round(totalTax * shareTax);
+          var monthTax = Math.round(totalTax / 12);
+          $('input[name="yearTax"]').val(totalTax+' €');
+          $('input[name="monthTax"]').val(monthTax+' €');
+        }
+      </script>
+  </head>
+  <body>
+    <div id="content">
+      <h1>Calcul salaire et impôts</h1>
+      <form>
+          <table>
+            <tr>
+                <th>Contrat</th>
+                <th>Mois payés</th>
+                <th>Heures par mois</th>
+            </tr>
+            <tr>
+              <th></th>
+              <td>
+                  <input value="12" name="monthsPerYear" />
+              </td>
+              <td>
+                  <input value="35" name="hoursPerWeek" />
+              </td>
+            </tr>
+              <tr>
+                  <th>Salaire</th>
+                  <th>Brut</th>
+                  <th>Net</th>
+              </tr>
+              <tr>
+                <th>Horaire</th>
+                <td>
+                    <input type="text" value="0" name="grossHour" />
+                </td>
+                <td>
+                    <input value="0" name="netHour" />
+                </td>
+              </tr>
+              <tr>
+                <th>Journalier</th>
+                <td>
+                    <input type="text" value="0" name="grossDay" />
+                </td>
+                <td>
+                    <input type="text" value="0" name="netDay" />
+                </td>
+              </tr>
+              <tr>
+                <th>Month</th>
+                <td>
+                    <input type="text" value="0" name="grossMonth" />
+                </td>
+                <td>
+                    <input type="text" value="0" name="netMonth" />
+                </td>
+              </tr>
+              <tr>
+                <th>Annuel</th>
+                <td>
+                    <input type="text" value="0" name="grossYear" />
+                </td>
+                <td>
+                    <input type="text" value="0" name="netYear" />
+                </td>
+              </tr>
+              <tr>
+                  <th>Impôts</th>
+                  <th></th>
+                  <th></th>
+              </tr>
+              <tr>
+                  <th>Parts</th>
+                  <th>Annuel</th>
+                  <th>Mensuel</th>
+              </tr>
+              <tr>
+                <td><input value="1" name="shareTax" /></td>
+                <td>
+                    <input value="0" name="yearTax" />
+                </td>
+                <td>
+                    <input value="0" name="monthTax" />
+                </td>
+              </tr>
+              <tr>
+                  <td></td>
+                  <td></td>
+                  <td>
+                      <input type="submit" value="Save" />
+                  </td>
+              </td>
+          </table>
+      </form>
+      <table id="simulations" style='display: none;'>
+          <tr>
+              <th>Brut annuel</th>
+              <th>Impôts annuels</th>
+              <th>Net mensuel</th>
+              <th>Impot mensuel</th>
+              <th>Total</th>
+          </tr>
+      </table>
+    </div>
+  </body>
+</html>

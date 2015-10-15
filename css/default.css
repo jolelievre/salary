@@ -1,0 +1,47 @@
+/*
+**  Salary CSS
+*/
+
+body {
+  background-color: #AEA49A;
+}
+
+b {
+  font-weight: bold;
+}
+
+#content {
+  margin: 0 auto;
+  max-width: 320px;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 10px auto;
+  text-align: center;
+}
+
+input {
+  border: none;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  margin: 5px;
+  padding: 3px;
+  text-align: right;
+  width: 100px;
+  background-color: #382C25;
+  color: #ffffff;
+}
+
+input.base {
+  background-color: #BDCFA8;
+}
+
+input[name=netMonth].update,
+input[name=netMonth].base {
+  border: 1px solid #58A000;
+  color: #58A000;
+  font-weight: bold;
+}
